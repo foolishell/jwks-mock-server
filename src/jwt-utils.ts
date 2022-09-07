@@ -2,7 +2,6 @@ import * as base64url from 'base64-url'
 import { createHash } from 'crypto'
 import { sign } from 'jsonwebtoken'
 import * as forge from 'node-forge'
-import * as NodeRSA from 'node-rsa'
 
 /* HARDCODED MOCK RSA KEYS */
 
@@ -99,13 +98,12 @@ export const createJWKS = ({
   publicKey,
   jwksOrigin,
 }: {
-  privateKey: forge.pki.PrivateKey
-  publicKey: forge.pki.PublicKey
+  privateKey: forge.pki.rsa.PrivateKey
+  publicKey: forge.pki.rsa.PublicKey
   jwksOrigin?: string
 }): JWKS => {
-  const helperKey = new NodeRSA()
-  helperKey.importKey(forge.pki.privateKeyToPem(privateKey))
-  const { n: modulus, e: exponent } = helperKey.exportKey('components')
+  const modulus = privateKey.n
+  const exponent = privateKey.e
   const certPem = createCertificate({
     jwksOrigin,
     privateKey,
@@ -121,12 +119,10 @@ export const createJWKS = ({
     keys: [
       {
         alg: 'RS256',
-        e: Buffer.isBuffer(exponent)
-          ? exponent.toString()
-          : bnToB64(String(exponent)),
+        e: base64url.escape(bnToB64(exponent.toString())),
         kid: thumbprint,
         kty: 'RSA',
-        n: modulus.toString('base64'),
+        n: base64url.escape(bnToB64(modulus.toString())),
         use: 'sig',
         x5c: [certDer],
         x5t: thumbprint,
@@ -148,14 +144,14 @@ export interface JwtPayload {
   sub?: string
   iss?: string
   aud?: string
-  exp?: string
+  exp?: number
   nbf?: string
   iat?: string
   jti?: string
 }
 
 export const signJwt = (
-  privateKey: forge.pki.PrivateKey,
+  privateKey: forge.pki.rsa.PrivateKey,
   jwtPayload: JwtPayload,
   kid?: string
 ) => {
