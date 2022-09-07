@@ -14,9 +14,10 @@ const bootstrap = () => {
   const token = {
     aud: `${jwtAudience}`,
     iss: `${jwksOrigin}`,
+    exp: Date.parse("2099-12-31T23:59:59Z"),
     sub: 'testprovider|12345678',
   }
-  
+
   const server = fastify()
 
   server.get(jwksPath, async () => {
@@ -26,7 +27,7 @@ const bootstrap = () => {
   server.get('/token', async () => {
     return signJwt(keypair.privateKey, token, JWKS.keys[0].kid)
   })
-  
+
   server.listen(8080, '0.0.0.0', (err, address) => {
     if (err) {
       console.error(err)
@@ -34,6 +35,6 @@ const bootstrap = () => {
     }
     console.log(`Server listening at ${address}`)
   })
-  
+
 }
 bootstrap()
